@@ -11,8 +11,13 @@
   </div>
 
   <div *ngIf="errors.length > 0" class="margin-top">
-    <h2>Validation Errors</h2>    
-    <div *ngIf="hasAdminLevelErrors" class="error-card">
+    <h2>Validation Errors</h2>
+    <ul>
+      <li *ngFor="let error of errors">
+        Row {{ error.row }} ({{ error.userData.email }}): {{ error.message }}
+      </li>
+    </ul>    
+    <!-- <div *ngIf="hasAdminLevelErrors" class="error-card">
       <h3>Only Admin will report to Root</h3>
       <ul>
         <li *ngFor="let error of findErrorsByRole('Admin')">
@@ -46,7 +51,7 @@
           Row {{ error.row }} ({{ error.userData.email }}): {{ error.message }}
         </li>
       </ul>
-    </div>
+    </div> -->
   </div>
 
   <div *ngIf="csvFormatIssue" class="error-message">

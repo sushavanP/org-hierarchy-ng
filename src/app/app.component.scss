@@ -1,31 +1,35 @@
 
 body {
   font-family: 'Arial', sans-serif;
-  background-color: #f4f7fc;
+  background-color: #f9f9f9;
   margin: 0;
   padding: 0;
+  color: #333;
+  line-height: 1.5;
 }
 
 .container {
-  max-width: 800px;
-  margin: 30px auto;
+  max-width: 600px;
+  margin: 50px auto;
   padding: 20px;
-  background-color: #ffffff;
+  background: #fff;
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 h1 {
-  font-size: 24px;
-  color: #333333;
+  font-size: 1.8rem;
+  color: #222;
   text-align: center;
   margin-bottom: 20px;
 }
 
 h2 {
-  font-size: 20px;
-  color: #444444;
-  margin-bottom: 10px;
+  font-size: 1.4rem;
+  color: #444;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 5px;
+  margin-bottom: 15px;
 }
 
 h3 {
@@ -35,20 +39,33 @@ h3 {
 }
 
 input[type='file'] {
-  display: block;
-  margin: 0 auto;
-  padding: 10px;
-  font-size: 16px;
-  border: 1px solid #dddddd;
+  display: inline-block;
+  padding: 10px 15px;
+  border: 1px solid #ccc;
   border-radius: 5px;
-  background-color: #f9f9f9;
-  transition: all 0.2s ease;
+  background-color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
 
   &:hover {
-    border-color: #cccccc;
-    background-color: #f1f1f1;
+    border-color: #888;
   }
 }
+
+ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+
+    li {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      background-color: #f7f7f7;
+    }
+  }
 
 .error-card {
   background-color: #ffeded;
@@ -76,27 +93,22 @@ input[type='file'] {
 }
 
 .success {
-  background-color: #e6f9ed;
-  border: 1px solid #b6e2c6;
-  border-radius: 8px;
-  margin: 20px 0;
-  padding: 15px;
-  color: #2a7b3b;
-  font-weight: bold;
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 128, 0, 0.1);
+  background-color: #eafaf1;
+  border: 1px solid #c3e6cb;
+  color: #28a745;
 }
 
 .error-message {
-  background-color: #ffeded;
-  border: 1px solid #ffcccc;
-  border-radius: 8px;
-  margin: 20px 0;
-  padding: 15px;
+  background-color: #fdecea;
+  border: 1px solid #f5c6cb;
   color: #d9534f;
+}
+
+.error-message, .success {
+  padding: 15px;
+  border-radius: 5px;
+  margin-top: 20px;
   font-weight: bold;
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(255, 0, 0, 0.1);
 }
 
 .margin-top {
@@ -105,4 +117,19 @@ input[type='file'] {
 
 .center {
   text-align: center;
+}
+
+@media (max-width: 768px) {
+  .container {
+    margin: 20px;
+    padding: 15px;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+  }
 }

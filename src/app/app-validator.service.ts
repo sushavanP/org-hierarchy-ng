@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { OrgUser, ValidationError } from '../models/commonTypes';
+import { OrgUser, ValidationError, UserRole } from '../models/commonTypes';
 
 @Injectable({
   providedIn: 'root',
@@ -16,8 +16,6 @@ export class AppValidatorService {
         role: this.capitalizedRole(user.role),
       });
     });
-
-    console.log("user map", userMap)
 
     users.forEach((user, index) => {
       const userWithCapitalizedRole = {
@@ -46,56 +44,57 @@ export class AppValidatorService {
       if (userWithCapitalizedRole.reportsTo) {
         const manager = userMap.get(userWithCapitalizedRole.reportsTo.toLowerCase());
 
-        if(userWithCapitalizedRole.role == 'Root') {
-          if (userWithCapitalizedRole.reportsTo) {
+        const { path, cycleDetails } = this.getReportsToPathCycle(userWithCapitalizedRole.email.toLowerCase(), userMap);
+        
+        if (cycleDetails) {
+          const cycleUsers = cycleDetails.map(email => {
+            const user = userMap.get(email.toLowerCase());
+            return `${user?.fullName} (${user?.role})`;
+          }).join(' → ');
+
+          errors.push({
+            row: index + 2,
+            message: `Circular reporting chain detected: ${cycleUsers}. This creates an invalid hierarchy where subordinates and managers form a loop.`,
+            userData: userWithCapitalizedRole
+          });
+          return;
+        }
+
+        for (let i = 0; i < path.length - 1; i++) {
+          const currentUser = userMap.get(path[i].toLowerCase());
+          const currentManager = userMap.get(path[i + 1].toLowerCase());
+          
+          if (currentUser && currentManager) {
+            if (!this.isReportingToValidRole(currentUser.role, currentManager.role)) {
+              const chain = path.slice(0, i + 2).map(email => {
+                const user = userMap.get(email.toLowerCase());
+                return `${user?.fullName} (${user?.role})`;
+              }).join(' → ');
+
+              errors.push({
+                row: index + 2,
+                message: `Invalid reporting chain: ${chain}. ${this.getOrgHierarchyRule(currentUser.role)}`,
+                userData: userWithCapitalizedRole
+              });
+              return;
+            }
+          }
+        }
+
+        if (manager) {
+          if (!this.isReportingToValidRole(userWithCapitalizedRole.role, manager.role)) {
             errors.push({
               row: index + 2,
-              message: 'Root should not report to anyone',
+              message: `Invalid direct report: ${userWithCapitalizedRole.fullName} (${userWithCapitalizedRole.role}) cannot report to ${manager.fullName} (${manager.role}). ${this.getOrgHierarchyRule(userWithCapitalizedRole.role)}. ${this.getOrgHierarchyRule(userWithCapitalizedRole.role)}`,
               userData: userWithCapitalizedRole,
             });
           }
-        } else if(userWithCapitalizedRole.role == 'Admin') {
-          if (!manager || manager.role !== 'Root') {
-            errors.push({
-              row: index + 2,
-              message: `${
-                userWithCapitalizedRole.fullName
-              } is an Admin but reports to ${
-                manager
-                  ? `${manager.fullName} (${manager.role})`
-                  : 'an unknown user'
-              }, not Root`,
-              userData: userWithCapitalizedRole,
-            });
-          }
-        } else if(userWithCapitalizedRole.role == 'Manager') {
-          if (!manager || !['Manager', 'Admin'].includes(manager.role)) {
-            errors.push({
-              row: index + 2,
-              message: `${
-                userWithCapitalizedRole.fullName
-              } is a Manager but reports to ${
-                manager
-                  ? `${manager.fullName} (a ${manager.role})`
-                  : 'an unknown user'
-              }`,
-              userData: userWithCapitalizedRole,
-            });
-          }
-        } else if(userWithCapitalizedRole.role == 'Caller') {
-          if (!manager || manager.role !== 'Manager') {
-            errors.push({
-              row: index + 2,
-              message: `${
-                userWithCapitalizedRole.fullName
-              } is a Caller but reports to ${
-                manager
-                  ? `${manager.fullName} (${manager.role})`
-                  : 'an unknown user'
-              }`,
-              userData: userWithCapitalizedRole,
-            });
-          }
+        } else {
+          errors.push({
+            row: index + 2,
+            message: `${userWithCapitalizedRole.fullName} reports to an unknown user: ${userWithCapitalizedRole.reportsTo}`,
+            userData: userWithCapitalizedRole
+          });
         }
       }
     });
@@ -107,5 +106,53 @@ export class AppValidatorService {
     const capitalized =
       role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
     return capitalized as 'Caller' | 'Manager' | 'Admin' | 'Root';
+  }
+
+    private getReportsToPathCycle(userEmail: string, userMap: Map<string, OrgUser>): { 
+    path: string[], 
+    cycleDetails: string[] | null 
+  } {
+    const visited = new Set<string>();
+    const path: string[] = [];
+    
+    let currentEmail = userEmail;
+    while (currentEmail) {
+      if (visited.has(currentEmail)) {
+        const cycleStartIndex = path.indexOf(currentEmail);
+        const cycle = path.slice(cycleStartIndex).concat(currentEmail);
+        return { path, cycleDetails: cycle };
+      }
+      
+      path.push(currentEmail);
+      visited.add(currentEmail);
+      
+      const user = userMap.get(currentEmail);
+      if (!user || !user.reportsTo) break;
+      
+      currentEmail = user.reportsTo.toLowerCase();
+    }
+    
+    return { path, cycleDetails: null };
+  }
+
+  private getOrgHierarchyRule(role: UserRole): string {
+    const rules = {
+      'Root': 'Root should not report to anyone.',
+      'Admin': 'Admins can only report to Root.',
+      'Manager': 'Managers can only report to Admins or other Managers.',
+      'Caller': 'Callers can only report to Managers.'
+    };
+    return rules[role] || '';
+  }
+
+  private isReportingToValidRole(subordinateRole: string, managerRole: string): boolean {
+    const roleHierarchy: Record<UserRole, UserRole[]> = {
+      'Root': [],
+      'Admin': ['Root'],
+      'Manager': ['Admin', 'Manager'],
+      'Caller': ['Manager']
+    };
+
+    return roleHierarchy[subordinateRole as UserRole]?.includes(managerRole as UserRole) || false;
   }
 }
